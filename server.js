@@ -568,6 +568,7 @@ const STATIC_ROUTES = [
   { route: "/index.html", file: "index.html" },
   { route: "/style.css", file: "style.css" },
   { route: "/script.js", file: "script.js" },
+  { route: "/favicon.svg", file: "favicon.svg" },
 ];
 
 for (const entry of STATIC_ROUTES) {
@@ -577,8 +578,10 @@ for (const entry of STATIC_ROUTES) {
   });
 }
 
+// Browsers and crawlers still request /favicon.ico directly; point them at the
+// SVG icon instead of answering with an empty response.
 app.get("/favicon.ico", (req, res) => {
-  res.status(204).end();
+  res.redirect(302, "/favicon.svg");
 });
 
 app.get("/api/health", (req, res) => {

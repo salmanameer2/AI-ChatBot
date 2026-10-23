@@ -56,11 +56,14 @@ test("does not expose server files or secrets", async () => {
 test("serves the frontend assets from the public directory", async () => {
   const css = await fetch(`${baseUrl}/style.css`);
   const js = await fetch(`${baseUrl}/script.js`);
+  const favicon = await fetch(`${baseUrl}/favicon.svg`);
 
   assert.equal(css.status, 200);
   assert.match(css.headers.get("content-type"), /text\/css/);
   assert.equal(js.status, 200);
   assert.match(js.headers.get("content-type"), /javascript/);
+  assert.equal(favicon.status, 200);
+  assert.match(favicon.headers.get("content-type"), /image\/svg\+xml/);
 });
 
 test("frontend assets contain no API key material", async () => {
