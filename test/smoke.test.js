@@ -88,6 +88,7 @@ test("returns the centralized free-model list", async () => {
   for (const model of data.models) {
     assert.equal(typeof model.id, "string");
     assert.equal(typeof model.name, "string");
+    assert.equal(typeof model.provider, "string");
     assert.equal(typeof model.description, "string");
     assert.equal(typeof model.vision, "boolean");
     assert.ok(

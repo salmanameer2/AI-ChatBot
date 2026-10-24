@@ -7,8 +7,8 @@ browser. The same code runs locally and as a Vercel Function.
 
 - **Free models only** — no paid fallback, ever.
 - **Automatic free routing** through `openrouter/free`.
-- **Model selector** grouped by category, with descriptions, vision badges, and
-  FREE labels.
+- **Model selector** grouped by category, with readable names, provider labels,
+  descriptions, vision badges, and FREE labels.
 - **Chat history is kept** when you switch models.
 - **Image input** for models that support vision.
 - **Clear errors** for rate limits, account restrictions, unavailable models,
@@ -140,31 +140,44 @@ there; the platform supplies them.
 | `npm run dev` | Starts the server with `node --watch` |
 | `npm test` | Runs the backend, security, and upstream tests (mocked, no real API calls) |
 | `npm run check` | Syntax-checks `server.js`, `models.js`, and `public/script.js` |
-| `npm run verify:models` | Checks every allowlisted model against OpenRouter's live catalog and confirms it is still free |
+| `npm run verify:models` | Checks every allowlisted model against OpenRouter's live catalog, confirms it is still free, and audits the MiniMax, DeepSeek, Qwen, and GLM families |
 
 ## Free models
 
 The model list lives in one place: [`models.js`](./models.js). The server uses
 the same list as an allowlist, so the frontend cannot request a paid model.
 
-Models verified against <https://openrouter.ai/api/v1/models> on **2026-10-23**:
+Models verified against <https://openrouter.ai/api/v1/models> on **2026-10-24**:
 
-| Model | ID | Notes |
-| --- | --- | --- |
-| Auto (Free Model) | `openrouter/free` | OpenRouter picks an available free model, including vision-capable ones when needed |
-| Gemma 4 31B | `google/gemma-4-31b-it:free` | Google, multimodal, 262K context |
-| Inkling | `thinkingmachines/inkling:free` | Multimodal, 1M context |
-| Nemotron 3 Ultra | `nvidia/nemotron-3-ultra-550b-a55b:free` | Large reasoning model, 1M context |
-| Laguna S 2.1 | `poolside/laguna-s-2.1:free` | Coding and agent tasks |
-| North Mini Code | `cohere/north-mini-code:free` | Fast coding assistance |
-| Flint v1.0 | `recursive/flint-v1.0:free` | Coding-agent model, 262K context |
-| LFM2.5 2.6B | `liquid/lfm-2.5-2.6b:free` | Small and fast |
+| Model | Provider | ID | Notes |
+| --- | --- | --- | --- |
+| Auto (Free Model) | OpenRouter | `openrouter/free` | OpenRouter picks an available free model, including vision-capable ones when needed |
+| Inkling | Thinking Machines | `thinkingmachines/inkling:free` | Multimodal, 1M context |
+| Nemotron 3 Ultra | NVIDIA | `nvidia/nemotron-3-ultra-550b-a55b:free` | Large reasoning model, 1M context |
+| Laguna S 2.1 | Poolside | `poolside/laguna-s-2.1:free` | Coding and agent tasks |
+| North Mini Code | Cohere | `cohere/north-mini-code:free` | Fast coding assistance |
+| Flint v1.0 | Recursive | `recursive/flint-v1.0:free` | Coding-agent model, 262K context |
+| LFM2.5 2.6B | Liquid AI | `liquid/lfm-2.5-2.6b:free` | Small and fast |
 
 The source of truth is the official free catalog:
 <https://openrouter.ai/models?pricing=free>. Free status is checked again by the
 server before each chat request (cached for 10 minutes). If a model stops being
 free, the server refuses to call it instead of silently switching to a paid
 model.
+
+### MiniMax, DeepSeek, Qwen, and GLM
+
+The project is set up to support these families through OpenRouter, and
+`npm run verify:models` audits them against the live catalog. On **2026-10-24**
+none of the MiniMax, DeepSeek, Qwen, or GLM (Z.ai / Zhipu AI) models had both
+prompt and completion prices at exactly zero, so no paid endpoints were added.
+The free-only router `openrouter/free` can still use a free model from these
+families if OpenRouter makes one available.
+
+A model is eligible only when the live catalog entry contains both prices and
+each one is exactly `0`. Missing, `null`, empty, or malformed prices are
+rejected, and a catalog outage never certifies a model that is not already on
+the bundled allowlist.
 
 ### Updating the list
 
@@ -202,8 +215,8 @@ Reports whether the server has a key and which models are configured.
   "ok": true,
   "configured": true,
   "defaultModel": "openrouter/free",
-  "modelCount": 8,
-  "verifiedAt": "2026-10-23"
+  "modelCount": 7,
+  "verifiedAt": "2026-10-24"
 }
 ```
 
@@ -219,6 +232,7 @@ date.
       "id": "openrouter/free",
       "name": "Auto (Free Model)",
       "shortName": "Auto",
+      "provider": "OpenRouter",
       "description": "OpenRouter picks an available free model...",
       "category": "Automatic",
       "tags": ["Auto", "Vision"],
@@ -228,7 +242,7 @@ date.
     }
   ],
   "defaultModel": "openrouter/free",
-  "verifiedAt": "2026-10-23",
+  "verifiedAt": "2026-10-24",
   "note": "Free models only. OpenRouter free-tier limits apply, and availability can change."
 }
 ```
@@ -239,7 +253,7 @@ Request body:
 
 ```json
 {
-  "model": "google/gemma-4-31b-it:free",
+  "model": "openrouter/free",
   "messages": [
     { "role": "user", "content": "Explain async/await in one paragraph." }
   ]
@@ -250,7 +264,7 @@ An image can be attached to the **last user message** as a base64 data URL:
 
 ```json
 {
-  "model": "google/gemma-4-31b-it:free",
+  "model": "openrouter/free",
   "messages": [
     {
       "role": "user",
@@ -271,8 +285,8 @@ Successful response:
 ```json
 {
   "message": "Async/await is syntax for working with promises...",
-  "model": "google/gemma-4-31b-it:free",
-  "modelName": "Gemma 4 31B"
+  "model": "openrouter/free",
+  "modelName": "Auto (Free Model)"
 }
 ```
 
@@ -446,8 +460,11 @@ models.js           Central free-model configuration / allowlist
 scripts/
   verify-models.js  Live free-pricing verification
 test/
-  smoke.test.js     Routing, validation, and secret-exposure tests
-  upstream.test.js  Mocked OpenRouter integration and error mapping tests
+  smoke.test.js          Routing, validation, and secret-exposure tests
+  upstream.test.js       Mocked OpenRouter integration and error mapping tests
+  models.test.js         Free-pricing policy for all four target families
+  pricing-policy.test.js Malformed/missing live prices are refused end to end
+  catalog-outage.test.js Catalog outages never certify unlisted models
 vercel.json         Security headers only (no conflicting routing rules)
 .vercelignore       Keeps local secrets and dev-only files out of CLI deploys
 .env.example        Placeholder configuration (safe to commit)
@@ -466,10 +483,14 @@ npm test
 `npm test` mocks OpenRouter, so it does not spend free-tier requests or need a
 real key. The tests cover page/asset serving, blocked server files, the model
 allowlist, message validation, image limits, missing-key errors, malformed JSON,
-model selection, upstream error mapping, and API-key redaction.
+model selection, upstream error mapping, and API-key redaction. They also cover
+eligible and paid entries for MiniMax, DeepSeek, Qwen, and GLM, missing or
+malformed prices, a free-to-paid change, unknown IDs, and catalog outages.
 
 Live free-model pricing can change. Run `npm run verify:models` before a release
-to confirm every allowlisted model is still free in OpenRouter's catalog.
+to confirm every allowlisted model is still free in OpenRouter's catalog and to
+audit the four target families. This is the only script that contacts OpenRouter
+for pricing; the regular test suite is fully mocked.
 
 ## Troubleshooting
 

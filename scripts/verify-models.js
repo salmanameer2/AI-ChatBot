@@ -1,8 +1,22 @@
 "use strict";
 
-const { FREE_MODELS } = require("../models");
+const {
+  FREE_MODELS,
+  TARGET_MODEL_FAMILIES,
+  isFreePricing,
+} = require("../models");
 
 const CATALOG_URL = "https://openrouter.ai/api/v1/models";
+
+function priceLabel(value) {
+  return value === undefined || value === null || value === ""
+    ? "missing"
+    : String(value);
+}
+
+function matchesFamily(modelId, family) {
+  return family.prefixes.some((prefix) => modelId.startsWith(prefix));
+}
 
 async function main() {
   console.log("Checking the free-model allowlist against OpenRouter's catalog...\n");
@@ -37,20 +51,17 @@ async function main() {
       };
     }
 
-    const prompt = Number(entry.pricing?.prompt);
-    const completion = Number(entry.pricing?.completion);
-    const isFree =
-      Number.isFinite(prompt) &&
-      Number.isFinite(completion) &&
-      prompt === 0 &&
-      completion === 0;
+    const isFree = isFreePricing(entry.pricing);
 
     if (!isFree) failures += 1;
 
     return {
       model: model.name,
       id: model.id,
-      price: isFree ? "free" : `prompt=${prompt}, completion=${completion}`,
+      price: isFree
+        ? "prompt=0, completion=0"
+        : `prompt=${priceLabel(entry.pricing?.prompt)}, ` +
+          `completion=${priceLabel(entry.pricing?.completion)}`,
       status: isFree ? "OK" : "NO LONGER FREE",
     };
   });
@@ -67,6 +78,32 @@ async function main() {
   }
 
   console.log(`\nAll ${FREE_MODELS.length} allowlisted models are currently free.`);
+
+  console.log(
+    "\nTarget-family audit (a model is eligible only when prompt AND completion are exactly 0):",
+  );
+
+  for (const family of TARGET_MODEL_FAMILIES) {
+    const matches = data.data.filter(
+      (model) =>
+        typeof model?.id === "string" && matchesFamily(model.id, family),
+    );
+    const free = matches.filter((model) => isFreePricing(model.pricing));
+
+    console.log(
+      `- ${family.name}: ${free.length} eligible free model(s) of ` +
+        `${matches.length} listed`,
+    );
+
+    for (const model of free) {
+      console.log(
+        `    ${model.id} (prompt=${priceLabel(model.pricing?.prompt)}, ` +
+          `completion=${priceLabel(model.pricing?.completion)})`,
+      );
+    }
+  }
+
+  console.log("\nNot all target families have free models at any given time.");
   console.log("Catalog checked:", new Date().toISOString());
 }
 

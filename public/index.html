@@ -14,7 +14,7 @@
   <!-- ✅ Emoji picker styles -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@joeattardi/emoji-button@4.6.2/dist/style.css" />
 </head>
-<body class="show-chatbot">
+<body>
   <div class="page-glow" aria-hidden="true"></div>
 
   <main class="page">
@@ -22,7 +22,7 @@
       <h1 class="hero-title">Chat with <span class="accent">AI</span></h1>
       <p class="hero-subtitle">Simply ask your AI chatbot assistant to generate!</p>
 
-      <button id="chatbot-toggler" type="button" aria-controls="chatbot-popup" aria-expanded="true">
+      <button id="chatbot-toggler" type="button" aria-controls="chatbot-popup" aria-expanded="false">
         <span class="material-symbols-rounded" aria-hidden="true">forum</span>
         <span class="toggler-label">Try With Demo</span>
         <span class="material-symbols-rounded toggler-arrow" aria-hidden="true">arrow_outward</span>
@@ -126,6 +126,19 @@
       </div>
     </section>
   </main>
+
+  <!-- Floating launcher stays visible while the chat is minimized/closed. -->
+  <button
+    id="chat-fab"
+    class="chat-fab"
+    type="button"
+    aria-controls="chatbot-popup"
+    aria-expanded="false"
+    aria-label="Open chat"
+    title="Open chat"
+  >
+    <span class="material-symbols-rounded" aria-hidden="true">forum</span>
+  </button>
 
   <!-- Linking emoji Mart script from emoji picker -->
   <script src="https://cdn.jsdelivr.net/npm/emoji-mart@latest/dist/browser.js"></script>

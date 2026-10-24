@@ -604,6 +604,13 @@ body:not(.show-chatbot) .chat-stage {
   color: #f1fbf8;
 }
 
+.model-option-provider {
+  color: #9fb8b2;
+  font-size: 0.58rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .model-option-free {
   padding: 1px 5px;
   border-radius: 4px;
@@ -720,6 +727,58 @@ body:not(.show-chatbot) .chat-stage {
 #close-chatbot:focus-visible {
   outline: 2px solid rgba(94, 234, 212, 0.6);
   outline-offset: 1px;
+}
+
+/* ---------- Floating chat launcher ---------- */
+.chat-fab {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  z-index: 70;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(94, 234, 212, 0.34);
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5eead4, #38bdf8);
+  color: #04211d;
+  cursor: pointer;
+  box-shadow:
+    0 18px 38px -16px rgba(0, 0, 0, 0.9),
+    0 0 34px -10px rgba(45, 212, 191, 0.65),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.chat-fab .material-symbols-rounded {
+  font-size: 1.6rem;
+  font-variation-settings: 'FILL' 1, 'wght' 500, 'GRAD' 0, 'opsz' 24;
+}
+
+.chat-fab:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 22px 44px -16px rgba(0, 0, 0, 0.95),
+    0 0 44px -8px rgba(45, 212, 191, 0.8),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.chat-fab:focus-visible {
+  outline: 2px solid rgba(94, 234, 212, 0.75);
+  outline-offset: 3px;
+}
+
+/* The in-panel close button takes over while the chat is open. */
+body.show-chatbot .chat-fab {
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(10px) scale(0.92);
 }
 
 /* ---------- Material Icons ---------- */
@@ -1200,6 +1259,17 @@ body.show-emoji-picker em-emoji-picker {
 @media (max-width: 720px) {
   .page {
     padding: 42px 12px 40px;
+  }
+
+  .chat-fab {
+    right: max(14px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: 50px;
+    height: 50px;
+  }
+
+  .chat-fab .material-symbols-rounded {
+    font-size: 1.45rem;
   }
 
   .chatbot-popup {

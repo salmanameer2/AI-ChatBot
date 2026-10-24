@@ -97,12 +97,12 @@ test("sends the selected model and history to OpenRouter", async () => {
 
   chatResponse = () =>
     jsonResponse({
-      model: "google/gemma-4-31b-it:free",
+      model: "poolside/laguna-s-2.1:free",
       choices: [{ message: { content: "Hello from the mocked model." } }],
     });
 
   const { response, data } = await postChat({
-    model: "google/gemma-4-31b-it:free",
+    model: "poolside/laguna-s-2.1:free",
     messages: [
       { role: "user", content: "First question" },
       { role: "assistant", content: "First answer" },
@@ -112,11 +112,11 @@ test("sends the selected model and history to OpenRouter", async () => {
 
   assert.equal(response.status, 200);
   assert.equal(data.message, "Hello from the mocked model.");
-  assert.equal(data.model, "google/gemma-4-31b-it:free");
+  assert.equal(data.model, "poolside/laguna-s-2.1:free");
   assert.equal(openRouterCalls.length, 1);
 
   const call = openRouterCalls[0];
-  assert.equal(call.body.model, "google/gemma-4-31b-it:free");
+  assert.equal(call.body.model, "poolside/laguna-s-2.1:free");
   assert.equal(call.body.messages[0].role, "system");
   assert.deepEqual(
     call.body.messages.slice(1).map((message) => message.role),
@@ -127,6 +127,29 @@ test("sends the selected model and history to OpenRouter", async () => {
 
   const serialized = JSON.stringify(data);
   assert.ok(!serialized.includes("test-key-never-logged"));
+});
+
+test("rejects paid or unknown IDs from the target families", async () => {
+  openRouterCalls.length = 0;
+
+  const requested = [
+    "minimax/minimax-m3.1-flash",
+    "deepseek/deepseek-v4.1-flash",
+    "qwen/qwen3.8-flash",
+    "z-ai/glm-5.3-flash",
+  ];
+
+  for (const model of requested) {
+    const { response, data } = await postChat({
+      model,
+      messages: [{ role: "user", content: "Hello" }],
+    });
+
+    assert.equal(response.status, 400, `${model} should be rejected`);
+    assert.equal(data.error.code, "model_not_allowed");
+  }
+
+  assert.equal(openRouterCalls.length, 0, "must not call any unverified model");
 });
 
 test("maps a 429 rate-limit response to a clear error", async () => {
@@ -213,7 +236,7 @@ test("returns an empty-response error instead of a blank bubble", async () => {
     });
 
   const { response, data } = await postChat({
-    model: "google/gemma-4-31b-it:free",
+    model: "poolside/laguna-s-2.1:free",
     messages: [{ role: "user", content: "Hello" }],
   });
 
@@ -233,7 +256,7 @@ test("never echoes the server API key in upstream error details", async () => {
     );
 
   const { response, data } = await postChat({
-    model: "google/gemma-4-31b-it:free",
+    model: "poolside/laguna-s-2.1:free",
     messages: [{ role: "user", content: "Hello" }],
   });
 

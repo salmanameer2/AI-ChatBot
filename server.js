@@ -10,6 +10,8 @@ const {
   DEFAULT_MODEL_ID,
   FREE_MODELS_VERIFIED_AT,
   getModelById,
+  isAllowedModel,
+  isFreePricing,
 } = require("./models");
 
 const app = express();
@@ -347,11 +349,24 @@ async function loadCatalog() {
 
 /**
  * Re-check OpenRouter's catalog before sending a request. This protects the
- * user if a model that used to be free starts charging. If the catalog itself
- * is unreachable, fall back to the bundled allowlist (all IDs were verified)
- * instead of making the chatbot completely unusable.
+ * user if a model that used to be free starts charging. A model is accepted
+ * only when OpenRouter supplies both prices and each one is exactly zero.
+ *
+ * If the catalog itself is unreachable, fall back to the bundled allowlist only
+ * for IDs that were already verified and shipped in `models.js`. A catalog
+ * outage must never certify an arbitrary or newly seen model as free.
  */
 async function verifyModelIsStillFree(modelId) {
+  // Defense in depth: never verify an ID that is not in the bundled allowlist.
+  if (!isAllowedModel(modelId)) {
+    return {
+      ok: false,
+      code: "model_not_allowed",
+      message:
+        "That model is not on the free-model allowlist. Choose a model from the selector.",
+    };
+  }
+
   let byId;
 
   try {
@@ -375,15 +390,7 @@ async function verifyModelIsStillFree(modelId) {
     };
   }
 
-  const promptPrice = Number(entry.pricing?.prompt);
-  const completionPrice = Number(entry.pricing?.completion);
-
-  if (
-    !Number.isFinite(promptPrice) ||
-    !Number.isFinite(completionPrice) ||
-    promptPrice !== 0 ||
-    completionPrice !== 0
-  ) {
+  if (!isFreePricing(entry.pricing)) {
     return {
       ok: false,
       code: "model_not_free",
@@ -865,3 +872,7 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
+// Exported so the pricing-policy tests can exercise the catalog-outage path
+// directly. The Express app remains the default export.
+module.exports.verifyModelIsStillFree = verifyModelIsStillFree;

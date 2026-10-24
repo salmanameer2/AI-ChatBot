@@ -13,6 +13,8 @@ const fileUploadWrapper = document.querySelector(".file-upload-wrapper");
 const fileCancelButton = document.querySelector("#file-cancel");
 const chatbotToggler = document.querySelector("#chatbot-toggler");
 const closeChatbot = document.querySelector("#close-chatbot");
+const chatStage = document.querySelector(".chat-stage");
+const chatFab = document.querySelector("#chat-fab");
 const clearChatButton = document.querySelector("#clear-chat");
 const composerNotice = document.querySelector("#composer-notice");
 
@@ -171,7 +173,7 @@ function updateModelTrigger() {
 
   selectedModelName.textContent = name;
   modelTrigger.title = model
-    ? `${model.name} — ${model.description}`
+    ? `${model.name}${model.provider ? ` by ${model.provider}` : ""} — ${model.description}`
     : "Choose a free model";
   modelTrigger.setAttribute("aria-label", `Current model: ${name}. Change model.`);
   chatStatusText.textContent = `Online · ${model?.shortName || "Ready to chat"}`;
@@ -207,7 +209,16 @@ function createModelOption(model) {
   free.className = "model-option-free";
   free.textContent = "FREE";
 
-  top.append(name, free);
+  top.append(name);
+
+  if (typeof model.provider === "string" && model.provider.trim()) {
+    const provider = document.createElement("span");
+    provider.className = "model-option-provider";
+    provider.textContent = model.provider.trim();
+    top.append(provider);
+  }
+
+  top.append(free);
 
   const description = document.createElement("span");
   description.className = "model-option-desc";
@@ -830,26 +841,60 @@ sendMessageButton.addEventListener("click", (event) => handleOutgoingMessage(eve
 chatForm.addEventListener("submit", (event) => event.preventDefault());
 document.querySelector("#file-upload").addEventListener("click", () => fileInput.click());
 
-// Open the demo (the chat card is part of the page layout now)
-chatbotToggler.addEventListener("click", () => {
-  const wasHidden = !document.body.classList.contains("show-chatbot");
-  document.body.classList.add("show-chatbot");
-  chatbotToggler.setAttribute("aria-expanded", "true");
+/* -------------------------------------------------------------------------- */
+/* Chat visibility (demo launcher, floating button, close control)             */
+/* -------------------------------------------------------------------------- */
 
-  if (wasHidden) {
+const isChatOpen = () => document.body.classList.contains("show-chatbot");
+
+function setChatOpen(isOpen, { scroll = false, focus = false } = {}) {
+  document.body.classList.toggle("show-chatbot", isOpen);
+  chatbotToggler.setAttribute("aria-expanded", String(isOpen));
+  chatFab?.setAttribute("aria-expanded", String(isOpen));
+
+  if (!isOpen) {
+    document.body.classList.remove("show-emoji-picker");
+    closeModelMenu();
+    return;
+  }
+
+  if (scroll) {
     requestAnimationFrame(() => {
-      document.querySelector(".chat-stage").scrollIntoView({ behavior: "smooth", block: "center" });
+      chatStage?.scrollIntoView({ behavior: "smooth", block: "center" });
     });
   }
 
-  setTimeout(() => messageInput.focus({ preventScroll: true }), 150);
+  if (focus) {
+    setTimeout(() => messageInput.focus({ preventScroll: true }), 150);
+  }
+}
+
+function openChat(options = {}) {
+  setChatOpen(true, options);
+}
+
+function closeChat() {
+  setChatOpen(false);
+}
+
+// "Try With Demo" always opens the panel, even after a previous minimize/close.
+chatbotToggler.addEventListener("click", () => {
+  openChat({ scroll: true, focus: true });
+});
+
+// Floating launcher is visible only while the chat is closed.
+chatFab?.addEventListener("click", () => {
+  if (isChatOpen()) {
+    closeChat();
+    chatbotToggler.focus({ preventScroll: true });
+    return;
+  }
+
+  openChat({ scroll: true, focus: true });
 });
 
 closeChatbot.addEventListener("click", () => {
-  document.body.classList.remove("show-chatbot");
-  chatbotToggler.setAttribute("aria-expanded", "false");
-  document.body.classList.remove("show-emoji-picker");
-  closeModelMenu();
+  closeChat();
   chatbotToggler.focus({ preventScroll: true });
 });
 
@@ -911,5 +956,7 @@ if (window.EmojiMart?.Picker) {
 /* Boot                                                                       */
 /* -------------------------------------------------------------------------- */
 
+// Every page load/refresh starts minimized; only an explicit click opens chat.
+setChatOpen(false);
 updateModelTrigger();
 loadModels();
